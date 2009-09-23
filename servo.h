@@ -63,7 +63,14 @@
 #define SERVO_H
 
 #include "global.h"
-#include "timer.h"
+// compatibility with megaXX8 processors
+#if   defined(__AVR_ATmega88__) || defined(__AVR_ATmega168__) || defined(__AVR_ATmega644__)
+   #include "timerx8.h"
+   #define TIMSK TIMSK1
+#else
+   #include "timer.h"
+   #define TIMSK TIMSK
+#endif
 
 // include configuration
 #include "servoconf.h"
