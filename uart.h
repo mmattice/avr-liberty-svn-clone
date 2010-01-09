@@ -25,6 +25,8 @@
 ///
 /// \note	For full text output functionality, you may wish to use the rprintf
 ///		functions along with this driver.
+///		\n You can define UART_RX_DISABLE to disable most of the UART receive code.
+///		\n You can define UART_BUFFER_EXTERNAL_RAM to use external RAM for the UART buffers.
 ///
 /// \par About UART operations
 ///		Most Atmel AVR-series processors contain one or more hardware UARTs
@@ -78,9 +80,13 @@
 #define UART_RX_BUFFER_SIZE		0x0040
 #endif
 
-// define this key if you wish to use
-// external RAM for the	UART buffers
-//#define UART_BUFFER_EXTERNAL_RAM
+//! define this key if you wish to disable
+/// most of the UART receive code
+/// #define UART_RX_DISABLE
+
+//! define this key if you wish to use
+/// external RAM for the UART buffers
+/// #define UART_BUFFER_EXTERNAL_RAM
 #ifdef UART_BUFFER_EXTERNAL_RAM
 	// absolute address of uart buffers
 	#define UART_TX_BUFFER_ADDR	0x1000

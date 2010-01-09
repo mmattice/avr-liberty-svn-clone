@@ -26,14 +26,18 @@
 volatile u08   uartReadyTx;			///< uartReadyTx flag
 volatile u08   uartBufferedTx;		///< uartBufferedTx flag
 // receive and transmit buffers
+#ifndef UART_RX_DISABLE
 cBuffer uartRxBuffer;				///< uart receive buffer
+#endif
 cBuffer uartTxBuffer;				///< uart transmit buffer
 unsigned short uartRxOverflow;		///< receive overflow counter
 
 #ifndef UART_BUFFERS_EXTERNAL_RAM
 	// using internal ram,
 	// automatically allocate space in ram for each buffer
+	#ifndef UART_RX_DISABLE
 	static char uartRxData[UART_RX_BUFFER_SIZE];
+	#endif
 	static char uartTxData[UART_TX_BUFFER_SIZE];
 #endif
 
@@ -49,7 +53,11 @@ void uartInit(void)
 	UartRxFunc = 0;
 
 	// enable RxD/TxD and interrupts
-	outb(UCR, BV(RXCIE)|BV(TXCIE)|BV(RXEN)|BV(TXEN));
+	#ifndef UART_RX_DISABLE
+		UCR = BV(RXCIE)|BV(TXCIE)|BV(RXEN)|BV(TXEN);
+	#else
+		UCR = BV(TXCIE)|BV(TXEN);
+	#endif
 
 	// set default baud rate
 	uartSetBaudRate(UART_DEFAULT_BAUD_RATE);  
@@ -67,23 +75,29 @@ void uartInitBuffers(void)
 {
 	#ifndef UART_BUFFERS_EXTERNAL_RAM
 		// initialize the UART receive buffer
-		bufferInit(&uartRxBuffer, uartRxData, UART_RX_BUFFER_SIZE);
+		#ifndef UART_RX_DISABLE
+			bufferInit(&uartRxBuffer, uartRxData, UART_RX_BUFFER_SIZE);
+		#endif
 		// initialize the UART transmit buffer
 		bufferInit(&uartTxBuffer, uartTxData, UART_TX_BUFFER_SIZE);
 	#else
 		// initialize the UART receive buffer
-		bufferInit(&uartRxBuffer, (u08*) UART_RX_BUFFER_ADDR, UART_RX_BUFFER_SIZE);
+		#ifndef UART_RX_DISABLE
+			bufferInit(&uartRxBuffer, (u08*) UART_RX_BUFFER_ADDR, UART_RX_BUFFER_SIZE);
+		#endif
 		// initialize the UART transmit buffer
 		bufferInit(&uartTxBuffer, (u08*) UART_TX_BUFFER_ADDR, UART_TX_BUFFER_SIZE);
 	#endif
 }
 
 // redirects received data to a user function
+#ifndef UART_RX_DISABLE
 void uartSetRxHandler(void (*rx_func)(unsigned char c))
 {
 	// set the receive interrupt to run the supplied user function
 	UartRxFunc = rx_func;
 }
+#endif
 
 // set the uart baud rate
 void uartSetBaudRate(u32 baudrate)
@@ -97,11 +111,13 @@ void uartSetBaudRate(u32 baudrate)
 }
 
 // returns the receive buffer structure 
+#ifndef UART_RX_DISABLE
 cBuffer* uartGetRxBuffer(void)
 {
 	// return rx buffer pointer
 	return &uartRxBuffer;
 }
+#endif
 
 // returns the transmit buffer structure 
 cBuffer* uartGetTxBuffer(void)
@@ -122,6 +138,7 @@ void uartSendByte(u08 txData)
 }
 
 // gets a single byte from the uart receive buffer (getchar-style)
+#ifndef UART_RX_DISABLE
 int uartGetByte(void)
 {
 	u08 c;
@@ -130,8 +147,10 @@ int uartGetByte(void)
 	else
 		return -1;
 }
+#endif
 
 // gets a byte (if available) from the uart receive buffer
+#ifndef UART_RX_DISABLE
 u08 uartReceiveByte(u08* rxData)
 {
 	// make sure we have a receive buffer
@@ -156,8 +175,10 @@ u08 uartReceiveByte(u08* rxData)
 		return FALSE;
 	}
 }
+#endif
 
 // flush all data out of the receive buffer
+#ifndef UART_RX_DISABLE
 void uartFlushReceiveBuffer(void)
 {
 	// flush all data from receive buffer
@@ -165,8 +186,10 @@ void uartFlushReceiveBuffer(void)
 	// same effect as above
 	uartRxBuffer.datalength = 0;
 }
+#endif
 
 // return true if uart receive buffer is empty
+#ifndef UART_RX_DISABLE
 u08 uartReceiveBufferIsEmpty(void)
 {
 	if(uartRxBuffer.datalength == 0)
@@ -178,6 +201,7 @@ u08 uartReceiveBufferIsEmpty(void)
 		return FALSE;
 	}
 }
+#endif
 
 // add byte to end of uart Tx buffer
 u08 uartAddToTxBuffer(u08 data)
@@ -254,6 +278,7 @@ UART_INTERRUPT_HANDLER(SIG_UART_TRANS)
 	}
 }
 
+#ifndef UART_RX_DISABLE
 // UART Receive Complete Interrupt Handler
 UART_INTERRUPT_HANDLER(SIG_UART_RECV)
 {
@@ -281,3 +306,4 @@ UART_INTERRUPT_HANDLER(SIG_UART_RECV)
 		}
 	}
 }
+#endif
