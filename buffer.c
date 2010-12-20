@@ -17,6 +17,7 @@
 
 #include "buffer.h"
 #include "global.h"
+#include <string.h>
 #include "avr/io.h"
 #include <util/atomic.h>
 
@@ -111,6 +112,26 @@ unsigned char bufferAddToEnd(cBuffer* buffer, unsigned char data)
 	// return success
 	status = -1;
       }
+  } // end critical section
+  return status;
+}
+
+unsigned char bufferAddToEndBuff(cBuffer* buffer, unsigned char *data, unsigned short len) {
+  unsigned char status = 0;
+  // begin critical section
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    // make sure buffer has room
+    if ((buffer->size - buffer->datalength) >= len) {
+      if ((buffer->dataindex + buffer->datalength + len) > buffer->size) {
+	unsigned short first = buffer->size - (buffer->dataindex + buffer->datalength);
+	memcpy(buffer->dataptr + buffer->dataindex + buffer->datalength, data, first);
+	memcpy(buffer->dataptr, data + first, len - first);
+      } else {
+	memcpy(buffer->dataptr + buffer->dataindex + buffer->datalength, data, len);
+      }
+      buffer->datalength += len;
+      status = -1;
+    }
   } // end critical section
   return status;
 }

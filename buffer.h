@@ -64,6 +64,9 @@ unsigned char	bufferGetAtIndex(cBuffer* buffer, unsigned short index);
 //! add a byte to the end of the buffer
 unsigned char	bufferAddToEnd(cBuffer* buffer, unsigned char data);
 
+//! add a buffer to the end of the buffer
+unsigned char bufferAddToEndBuff(cBuffer* buffer, unsigned char *data, unsigned short len);
+
 //! check if the buffer is full/not full (returns zero value if full)
 unsigned short	bufferIsNotFull(cBuffer* buffer);
 
