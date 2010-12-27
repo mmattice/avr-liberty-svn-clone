@@ -66,9 +66,12 @@ void lcdInitHW(void)
 	sbi(LCD_CTRL_DDR, LCD_CTRL_E);
 	// initialize LCD data port to input
 	// initialize LCD data lines to pull-up
-	#ifdef LCD_DATA_4BIT
+        #ifdef LCD_DATA_4BIT
 		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0x0F);		// set data I/O lines to input (4bit)
 		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0xF0);	// set pull-ups to on (4bit)
+        #elif defined(LCD_DATA_4BITL)
+                outb(LCD_DATA_DDR, inb(LCD_DATA_DDR) & 0xF0);
+		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT) | 0x0F);
 	#else
 		outb(LCD_DATA_DDR, 0x00);						// set data I/O lines to input (8bit)
 		outb(LCD_DATA_POUT, 0xFF);						// set pull-ups to on (8bit)
@@ -88,6 +91,9 @@ void lcdBusyWait(void)
 	#ifdef LCD_DATA_4BIT
 		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0x0F);	// set data I/O lines to input (4bit)
 		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0xF0);	// set pull-ups to on (4bit)
+        #elif defined(LCD_DATA_4BITL)
+		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0xF0);	// set data I/O lines to input (4bit)
+		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0x0F);	// set pull-ups to on (4bit)
 	#else
 		outb(LCD_DATA_DDR, 0x00);					// set data I/O lines to input (8bit)
 		outb(LCD_DATA_POUT, 0xFF);					// set pull-ups to on (8bit)
@@ -145,6 +151,21 @@ void lcdControlWrite(u08 data)
 		LCD_DELAY;								// wait
 		LCD_DELAY;								// wait
 		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+        #elif defined(LCD_DATA_4BITL)
+		// 4 bit write
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)|0x0F);	// set data I/O lines to output (4bit)
+		outb(LCD_DATA_POUT, (inb(LCD_DATA_POUT)&0xF0) | (data >> 4));	// output data, high 4 bits
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		outb(LCD_DATA_POUT, (inb(LCD_DATA_POUT)&0xF0) | (data & 0x0F) );	// output data, low 4 bits
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
 	#else
 		// 8 bit write
 		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
@@ -158,6 +179,9 @@ void lcdControlWrite(u08 data)
 	#ifdef LCD_DATA_4BIT
 		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0x0F);		// set data I/O lines to input (4bit)
 		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0xF0);	// set pull-ups to on (4bit)
+        #elif defined(LCD_DATA_4BITL)
+                outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0xF0);		// set data I/O lines to input (4bit)
+                outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0x0F);	// set pull-ups to on (4bit)
 	#else
 		outb(LCD_DATA_DDR, 0x00);			// set data I/O lines to input (8bit)
 		outb(LCD_DATA_POUT, 0xFF);			// set pull-ups to on (8bit)
@@ -180,6 +204,9 @@ u08 lcdControlRead(void)
 	#ifdef LCD_DATA_4BIT
 		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0x0F);		// set data I/O lines to input (4bit)
 		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0xF0);	// set pull-ups to on (4bit)
+        #elif defined(LCD_DATA_4BITL)
+		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0xF0);		// set data I/O lines to input (4bit)
+		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0x0F);	// set pull-ups to on (4bit)
 	#else
 		outb(LCD_DATA_DDR, 0x00);			// set data I/O lines to input (8bit)
 		outb(LCD_DATA_POUT, 0xFF);			// set pull-ups to on (8bit)
@@ -199,6 +226,20 @@ u08 lcdControlRead(void)
 		LCD_DELAY;						// wait
 		LCD_DELAY;						// wait
 		data |= inb(LCD_DATA_PIN)>>4;	// input data, low 4 bits
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+        #elif defined(LCD_DATA_4BITL)
+		// 4 bit read
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		LCD_DELAY;						// wait
+		LCD_DELAY;						// wait
+		data = inb(LCD_DATA_PIN) << 4;	// input data, high 4 bits
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+		LCD_DELAY;						// wait
+		LCD_DELAY;						// wait
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		LCD_DELAY;						// wait
+		LCD_DELAY;						// wait
+		data |= inb(LCD_DATA_PIN) & 0x0f;	// input data, low 4 bits
 		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
 	#else
 		// 8 bit read
@@ -240,6 +281,21 @@ void lcdDataWrite(u08 data)
 		LCD_DELAY;								// wait
 		LCD_DELAY;								// wait
 		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+        #elif defined(LCD_DATA_4BITL)
+		// 4 bit write
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)|0x0F);	// set data I/O lines to output (4bit)
+		outb(LCD_DATA_POUT, (inb(LCD_DATA_POUT)&0xF0) | (data >> 4) );	// output data, high 4 bits
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		outb(LCD_DATA_POUT, (inb(LCD_DATA_POUT)&0xF0) | (data & 0x0F) );	// output data, low 4 bits
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
 	#else
 		// 8 bit write
 		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
@@ -253,6 +309,9 @@ void lcdDataWrite(u08 data)
 	#ifdef LCD_DATA_4BIT
 		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0x0F);		// set data I/O lines to input (4bit)
 		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0xF0);	// set pull-ups to on (4bit)
+        #elif defined(LCD_DATA_4BITL)
+		outb(LCD_DATA_DDR, inb(LCD_DATA_DDR)&0xF0);		// set data I/O lines to input (4bit)
+		outb(LCD_DATA_POUT, inb(LCD_DATA_POUT)|0x0F);	// set pull-ups to on (4bit)
 	#else
 		outb(LCD_DATA_DDR, 0x00);			// set data I/O lines to input (8bit)
 		outb(LCD_DATA_POUT, 0xFF);			// set pull-ups to on (8bit)
@@ -294,6 +353,20 @@ u08 lcdDataRead(void)
 		LCD_DELAY;								// wait
 		LCD_DELAY;								// wait
 		data |= inb(LCD_DATA_PIN)>>4;			// input data, low 4 bits
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+        #elif defined(LCD_DATA_4BITL)
+		// 4 bit read
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		data = inb(LCD_DATA_PIN) << 4;	// input data, high 4 bits
+		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		sbi(LCD_CTRL_PORT, LCD_CTRL_E);	// set "E" line
+		LCD_DELAY;								// wait
+		LCD_DELAY;								// wait
+		data |= inb(LCD_DATA_PIN) & 0x0F;			// input data, low 4 bits
 		cbi(LCD_CTRL_PORT, LCD_CTRL_E);	// clear "E" line
 	#else
 		// 8 bit read
