@@ -18,6 +18,7 @@
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
+#include <compat/deprecated.h>
 
 #include "global.h"
 #include "timer.h"
